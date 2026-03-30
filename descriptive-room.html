@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Descriptive Research Exhibit - Virtual Museum</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cream:      #f5f0e8;
+            --cream-warm: #ede5d0;
+            --ink:        #1a2410;
+            --gold:       #c9a84c;
+            --gold-light: #e8cb7a;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { width: 100%; height: 100%; overflow: hidden; font-family: 'Jost', sans-serif; background: var(--ink); }
+
+        /* ROOM */
+        .museum-room { width: 100%; height: 100vh; position: relative; overflow: hidden; animation: roomReveal 1.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+        @keyframes roomReveal { from { opacity:0; filter:blur(20px); } to { opacity:1; filter:blur(0); } }
+
+        .room-shell {
+            width: 100%; height: 100%; position: relative;
+            background: linear-gradient(180deg, #6a8a3a 0%, #7a9a48 8%, #8aaa52 15%, #9ab25e 30%, #9ab25e 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+        }
+
+        .ceiling-strip { position: absolute; top:0; left:0; right:0; height:10%; background: linear-gradient(180deg,#5a7830,#7a9a48); border-bottom: 3px solid var(--gold); }
+        .ceiling-light { position:absolute; top:3%; left:50%; transform:translateX(-50%); width:120px; height:20px; background:rgba(255,240,180,0.9); border-radius:50%; box-shadow: 0 0 40px 20px rgba(255,240,150,0.4), 0 0 100px 50px rgba(255,240,100,0.15), 0 80px 160px 80px rgba(255,240,100,0.08); }
+        .wall-tex { position:absolute; inset:0; background-image: repeating-linear-gradient(90deg,transparent,transparent 60px,rgba(255,255,255,0.015) 60px,rgba(255,255,255,0.015) 61px), repeating-linear-gradient(180deg,transparent,transparent 60px,rgba(0,0,0,0.02) 60px,rgba(0,0,0,0.02) 61px); pointer-events:none; }
+        .vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 50%, rgba(26,36,16,0.4) 100%); pointer-events:none; z-index:2; }
+
+        .floor { position:absolute; bottom:0; left:0; right:0; height:14%; background:linear-gradient(180deg,#7a6a40,#6a5a30 40%,#5a4a22); border-top:4px solid var(--gold); box-shadow:inset 0 20px 40px rgba(0,0,0,0.3); }
+        .floor::before { content:''; position:absolute; top:0; left:0; right:0; height:28px; background:linear-gradient(180deg,#8a7a50,#7a6a40); border-bottom:2px solid rgba(201,168,76,0.5); }
+        .floor::after  { content:''; position:absolute; inset:28px 0 0; background-image:repeating-linear-gradient(90deg,transparent,transparent 100px,rgba(0,0,0,0.08) 100px,rgba(0,0,0,0.08) 101px); }
+
+        /* HEADER */
+        .room-header { position:absolute; top:12%; left:50%; transform:translateX(-50%); text-align:center; z-index:10; white-space:nowrap; }
+        .room-label  { font-family:'Cormorant Garamond',serif; font-size:clamp(0.5rem,1.5vw,0.75rem); letter-spacing:8px; color:var(--gold-light); text-transform:uppercase; opacity:0.85; }
+        .room-title  { font-family:'Cormorant Garamond',serif; font-size:clamp(1.6rem,4vw,3rem); font-weight:700; color:var(--cream); letter-spacing:3px; margin-top:4px; line-height:1; text-shadow:0 2px 20px rgba(0,0,0,0.4); }
+        .title-ornament { display:flex; align-items:center; gap:12px; justify-content:center; margin-top:8px; }
+        .title-ornament span { display:block; height:1px; width:60px; background:linear-gradient(90deg,transparent,var(--gold)); }
+        .title-ornament span:last-child { background:linear-gradient(90deg,var(--gold),transparent); }
+        .title-ornament i { color:var(--gold); font-style:normal; font-size:0.6rem; letter-spacing:4px; }
+
+        /* BACK BTN */
+        .back-btn { position:fixed; top:20px; left:20px; color:var(--cream); text-decoration:none; font-size:0.65rem; letter-spacing:3px; border:1px solid rgba(232,203,122,0.4); padding:10px 20px; z-index:200; text-transform:uppercase; font-weight:500; background:rgba(26,36,16,0.5); backdrop-filter:blur(12px); border-radius:2px; transition:all 0.3s; cursor: pointer; }
+        .back-btn:hover { background:var(--gold); color:var(--ink); border-color:var(--gold); }
+
+        /* GALLERY SIDE SCROLL */
+        .gallery-track {
+            position:absolute; top:22%; left:0; right:0; z-index:5;
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%);
+        }
+
+        .gallery-wall {
+            display: flex; 
+            align-items: flex-end;
+            justify-content: flex-start; /* Safe centering */
+            gap: clamp(20px, 3vw, 48px);
+            padding: 40px clamp(40px, 5vw, 80px) 0;
+            overflow-x: auto; 
+            overflow-y: visible;
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
+            scroll-behavior: smooth; 
+            cursor: default; /* Arrow cursor for panning gallery */
+            width: 100%;
+        }
+        
+        .gallery-wall::before, .gallery-wall::after { content: ''; margin: auto; }
+        .gallery-wall:active { cursor: default; } /* Prevent hand cursor when dragging */
+        .gallery-wall::-webkit-scrollbar { display:none; }
+
+        /* Scroll arrows */
+        .scroll-arrow { position:absolute; top:22%; transform:translateY(40%); z-index:10; background:rgba(26,36,16,0.55); border:1px solid rgba(201,168,76,0.35); color:var(--gold-light); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.2rem; cursor:pointer; backdrop-filter:blur(8px); transition:all 0.3s; opacity:0.7; -webkit-tap-highlight-color:transparent; }
+        .scroll-arrow:hover { background:var(--gold); color:var(--ink); opacity:1; }
+        .scroll-arrow.left  { left:14px; }
+        .scroll-arrow.right { right:14px; }
+
+        /* Poster slot */
+        .poster-slot { display:flex; flex-direction:column; align-items:center; flex-shrink:0; cursor:default; /* Arrow cursor for posters */ transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+        .poster-slot:hover { transform:translateY(-14px) scale(1.02); }
+
+        .poster-wire { width:2px; height:clamp(20px,3vh,36px); background:linear-gradient(180deg,var(--gold),rgba(201,168,76,0.4)); position:relative; }
+        .poster-wire::before { content:''; position:absolute; top:-4px; left:50%; transform:translateX(-50%); width:10px; height:10px; border-radius:50%; background:var(--gold); box-shadow:0 0 8px rgba(201,168,76,0.6); }
+
+        .poster-frame { position:relative; width:clamp(120px,18vw,280px); aspect-ratio:91/122; background:#0a0a0a; border:clamp(4px,0.5vw,8px) solid #e8dcc8; box-shadow:inset 0 0 0 2px rgba(201,168,76,0.3), 0 0 0 1px #7a5030, 8px 20px 50px rgba(0,0,0,0.6), 4px 8px 20px rgba(0,0,0,0.4); border-radius:2px; overflow:hidden; transition:box-shadow 0.4s; }
+        .poster-slot:hover .poster-frame { box-shadow:inset 0 0 0 2px rgba(201,168,76,0.6), 0 0 0 1px #c9a84c, 12px 30px 60px rgba(0,0,0,0.7), 0 0 30px rgba(201,168,76,0.15); }
+        .poster-frame::before, .poster-frame::after { content:''; position:absolute; width:12px; height:12px; border:2px solid rgba(201,168,76,0.5); z-index:3; }
+        .poster-frame::before { top:4px; left:4px; border-right:none; border-bottom:none; }
+        .poster-frame::after  { bottom:4px; right:4px; border-left:none; border-top:none; }
+
+        .poster-media { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.6s; filter:brightness(0.88) contrast(1.05); }
+        .poster-slot:hover .poster-media { transform:scale(1.04); filter:brightness(1) contrast(1); }
+        .poster-spotlight { position:absolute; inset:0; background:radial-gradient(ellipse at 50% 30%,rgba(255,248,200,0.12),transparent 70%); opacity:0; transition:opacity 0.4s; pointer-events:none; z-index:2; }
+        .poster-slot:hover .poster-spotlight { opacity:1; }
+
+        .poster-placard { background:var(--cream-warm); border:1px solid rgba(201,168,76,0.3); padding:clamp(5px,0.8vh,9px) clamp(8px,1.5vw,16px); text-align:center; width:clamp(120px,18vw,280px); box-shadow:0 4px 12px rgba(0,0,0,0.25); }
+        .placard-num   { font-size:clamp(0.45rem,0.7vw,0.58rem); letter-spacing:3px; color:var(--gold); font-weight:700; text-transform:uppercase; margin-bottom:2px; }
+        .placard-title { font-family:'Cormorant Garamond',serif; font-size:clamp(0.6rem,0.9vw,0.8rem); color:var(--ink); font-weight:600; line-height:1.2; }
+        .click-hint { position:absolute; bottom:16%; left:50%; transform:translateX(-50%); color:rgba(0, 0, 0, 0.6); font-size:0.62rem; letter-spacing:4px; text-transform:uppercase; z-index:5; white-space:nowrap; animation:pulseHint 2.5s ease-in-out infinite; }
+        @keyframes pulseHint { 0%,100%{opacity:.35} 50%{opacity:.85} }
+
+        /* ══ FULLSCREEN LIGHTBOX ══ */
+        .lightbox-overlay { 
+            position:fixed; inset:0; background:rgba(2,5,1,0.97); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); 
+            z-index:500; display:flex; align-items:center; justify-content:center; 
+            /* Fix cursor stickiness by forcing visibility off when closed */
+            opacity:0; visibility: hidden; pointer-events:none; 
+            transition:opacity 0.45s, visibility 0.45s; 
+        }
+        .lightbox-overlay.active { opacity:1; visibility: visible; pointer-events:all; }
+
+        /* Main Container inside Lightbox */
+        .lb-frame-wrap {
+            position:relative;
+            height: calc(100vh - 90px);
+            aspect-ratio: 91 / 122;
+            max-width: calc(100vw - 130px);
+            transform:scale(0.88);
+            /* Smooth cinematic transition */
+            transition:transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+            will-change: transform;
+        }
+        .lightbox-overlay.active .lb-frame-wrap { transform:scale(1); }
+        
+        /* ══ ZOOM & PAN STATES ══ */
+        /* Cursors */
+        .lb-media { 
+            cursor: zoom-in; 
+            /* Stop native browser image dragging which ruins cursors */
+            -webkit-user-drag: none; 
+            user-select: none; 
+        }
+        .lightbox-overlay.zoomed-in .lb-media { cursor: grab; }
+        .lightbox-overlay.zoomed-in .lb-frame-wrap:active .lb-media { cursor: grabbing; }
+
+        /* Hide elements when zoomed in so they don't block the view */
+        .lightbox-overlay.zoomed-in .lb-caption,
+        .lightbox-overlay.zoomed-in .lb-wire,
+        .lightbox-overlay.zoomed-in .lb-nav,
+        .lightbox-overlay.zoomed-in .lb-frame::before,
+        .lightbox-overlay.zoomed-in .lb-frame::after {
+            opacity: 0; pointer-events: none;
+        }
+
+        /* Frame components */
+        .lb-wire { width:2px; height:28px; background:linear-gradient(180deg,var(--gold),rgba(201,168,76,0.2)); margin:0 auto; position:relative; transition: opacity 0.3s; }
+        .lb-wire::before { content:''; position:absolute; top:-5px; left:50%; transform:translateX(-50%); width:12px; height:12px; border-radius:50%; background:var(--gold); box-shadow:0 0 14px rgba(201,168,76,0.9); }
+
+        .lb-frame { width:100%; height:calc(100% - 28px); background:#060806; border:clamp(6px,0.8vw,14px) solid #ede5d4; box-shadow:inset 0 0 0 3px rgba(201,168,76,0.35), 0 0 0 2px #7a6030, 0 40px 120px rgba(0,0,0,0.95), 0 10px 40px rgba(0,0,0,0.6); border-radius:2px; overflow:hidden; position:relative; }
+        .lb-frame::before, .lb-frame::after { content:''; position:absolute; width:22px; height:22px; border:2px solid rgba(201,168,76,0.55); z-index:3; transition: opacity 0.3s; }
+        .lb-frame::before { top:7px; left:7px; border-right:none; border-bottom:none; }
+        .lb-frame::after  { bottom:7px; right:7px; border-left:none; border-top:none; }
+
+        .lb-glow { position:absolute; top:-90px; left:50%; transform:translateX(-50%); width:300px; height:300px; background:radial-gradient(ellipse,rgba(255,242,160,0.18),transparent 70%); pointer-events:none; }
+
+        .lb-media { width:100%; height:100%; object-fit:cover; display:block; }
+        .lb-media.hidden { display:none; }
+
+        /* Caption overlay positioned to the side */
+        .lb-caption { 
+            position: absolute; top: 50%; left: 100%; transform: translateY(-50%); margin-left: 30px; 
+            padding: 24px; background: rgba(26, 36, 16, 0.85); border: 1px solid rgba(201,168,76,0.3);
+            border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+            display: flex; flex-direction: column; align-items: flex-start; justify-content: center; 
+            gap: 12px; z-index: 4; min-width: 250px; transition: opacity 0.3s ease;
+        }
+        .lb-title   { font-family:'Cormorant Garamond',serif; font-size:clamp(1.2rem,2vw,1.8rem); font-weight:700; color:var(--cream); line-height:1.2; text-shadow:none;}
+        .lb-counter { font-size:0.75rem; letter-spacing:4px; color:var(--gold); font-weight:700; white-space:nowrap; flex-shrink:0; }
+
+        /* Nav arrows */
+        .lb-nav { position:fixed; top:50%; transform:translateY(-50%); background:rgba(26,36,16,0.6); border:1px solid rgba(201,168,76,0.3); color:var(--gold-light); width:clamp(38px,4vw,54px); height:clamp(56px,8vh,80px); display:flex; align-items:center; justify-content:center; font-size:clamp(1.2rem,2vw,1.8rem); cursor:pointer; transition:all 0.3s; z-index:510; border-radius:2px; backdrop-filter:blur(8px); -webkit-tap-highlight-color:transparent; }
+        .lb-nav:hover { background:var(--gold); color:var(--ink); border-color:var(--gold); }
+        .lb-nav-prev { left:clamp(6px,1.5vw,22px); }
+        .lb-nav-next { right:clamp(6px,1.5vw,22px); }
+
+        .lb-close { position:fixed; top:18px; right:18px; background:rgba(26,36,16,0.75); border:1px solid rgba(201,168,76,0.3); color:var(--gold-light); width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.3rem; cursor:pointer; transition:all 0.3s; z-index:510; -webkit-tap-highlight-color:transparent; }
+        .lb-close:hover { background:var(--gold); color:var(--ink); transform:scale(1.1); }
+
+        .lb-fade { animation:lbFade 0.35s ease; }
+        @keyframes lbFade { from{opacity:0;transform:scale(0.97)} to{opacity:1;transform:scale(1)} }
+
+        @media (max-width: 900px) {
+            .lb-caption {
+                top: auto; bottom: -90px; left: 50%; transform: translateX(-50%); margin-left: 0;
+                flex-direction: row; align-items: center; justify-content: space-between;
+                min-width: 90%; padding: 16px 20px;
+            }
+            .lb-frame-wrap { height: calc(100vh - 160px); }
+        }
+
+        @media (max-width:600px) {
+            .lb-frame-wrap { height:calc(100vh - 170px); max-width:calc(100vw - 90px); }
+            .gallery-wall  { padding-left:55px; padding-right:55px; }
+        }
+    </style>
+</head>
+<body>
+
+<a href="lobby.html" class="back-btn">← Return to Hall</a>
+
+<div class="museum-room">
+    <div class="room-shell">
+        <div class="ceiling-strip"><div class="ceiling-light"></div></div>
+        <div class="wall-tex"></div>
+        <div class="vignette"></div>
+
+        <div class="room-header">
+            <div class="room-label">Gallery III · URS Morong Campus</div>
+            <h1 class="room-title">Descriptive Research</h1>
+            <div class="title-ornament"><span></span><i>✦</i><span></span></div>
+        </div>
+
+        <button class="scroll-arrow left"  onclick="scrollGallery(-1)" aria-label="Scroll left">&#8249;</button>
+        <button class="scroll-arrow right" onclick="scrollGallery(1)"  aria-label="Scroll right">&#8250;</button>
+
+        <div class="gallery-track">
+            <div class="gallery-wall" id="galleryWall"></div>
+        </div>
+
+        <div class="click-hint">Drag or click any poster to view</div>
+        <div class="floor"></div>
+    </div>
+</div>
+
+<div class="lightbox-overlay" id="lightbox">
+    <button class="lb-nav lb-nav-prev" onclick="lbNavigate(-1)" aria-label="Previous">&#8249;</button>
+    <button class="lb-nav lb-nav-next" onclick="lbNavigate(1)"  aria-label="Next">&#8250;</button>
+    <button class="lb-close" onclick="closeLightbox()" aria-label="Close">&#215;</button>
+
+    <div class="lb-frame-wrap" id="lbWrap">
+        <div class="lb-glow"></div>
+        <div class="lb-wire"></div>
+        <div class="lb-frame" id="lbFrame">
+            <video id="lbVideo" class="lb-media hidden" autoplay muted loop playsinline></video>
+            <img   id="lbImage" class="lb-media" src="" alt="" onclick="toggleZoom(event)" draggable="false">
+        </div>
+        <div class="lb-caption">
+            <div class="lb-title"   id="lbTitle">—</div>
+            <div class="lb-counter" id="lbCounter">01 / 03</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const researchData = [
+        { title:"LEARNING STYLES AND THE READING AND WRITING LEARNING STYLES AND THE READING AND WRITING COMPETENCE OF BSE ENGLISH STUDENTS",  image:"Des/E-POSTER - Learning Styles and the Reading and Writing Competence of BSE English Students.pdf.png", type:"image" },
+        { title:"SPATIAL ANALYSIS OF HOSPITAL DISTRIBUTION AND ACCESSIBILITY IN THE PROVINCE OF RIZAL",          image:"Des/Spatial Analysis of Hospital Distribution and Accessibility in the Province of Rizal_E-Poster.pdf.png",  type:"image" },
+        { title:"NARRATOLOGY OF TAYLOR SWIFT’S SONGS AS FORMS OF POPULAR LITERATURE",        image:"Des/E-Poster - Narratology of Taylor Swift songs as forms of Popular Literature_20260328_001359_0000.pdf.png",  type:"image" },
+        { title:"KIDKIOSK: GENERATIVE AI INTERACTIVE KIOSK TEACHING AID FOR ENHANCING ENGLISH READING SKILLS OF GRADE 1 PUPILS",        image:"Des/KIDKIOSK E-poster_Bautista et al_updated.pdf.png", type:"image" },
+        { title:"THE MODERATING ROLE OF PAKIKIRAMDAM ON EMOTIONAL INTELLIGENCE AND INTERPERSONAL RELATIONSHIPS AMONG COLLEGE STUDENTS",        image:"Des/COS-PSYCHOLOGY-DESCRIPTIVE-RESEARCH-EPOSTER_20260327_084520_0000.pdf.png",     video:"research3-preview.mp4",type:"image" }
+    ];
+
+    let currentIndex = 0;
+    let _dragging    = false;
+
+    /* BUILD */
+    function buildGallery() {
+        const wall = document.getElementById('galleryWall');
+        wall.innerHTML = '';
+        researchData.forEach((item, i) => {
+            const slot = document.createElement('div');
+            slot.className = 'poster-slot';
+            const mediaTag = item.type === 'video'
+                ? `<video class="poster-media" src="${item.video}" autoplay muted loop playsinline></video>`
+                : `<img class="poster-media" src="${item.image}" alt="${item.title}" loading="lazy" draggable="false">`;
+            slot.innerHTML = `
+                <div class="poster-wire"></div>
+                <div class="poster-frame">${mediaTag}<div class="poster-spotlight"></div></div>
+                <div class="poster-placard">
+                    <div class="placard-num">No. ${String(i+1).padStart(2,'0')}</div>
+                    <div class="placard-title">${item.title}</div>
+                </div>`;
+            slot.addEventListener('click', () => { if (!_dragging) openLightbox(i); });
+            wall.appendChild(slot);
+        });
+    }
+
+    /* SCROLL */
+    function scrollGallery(dir) {
+        const w = document.getElementById('galleryWall');
+        w.scrollBy({ left: dir * w.offsetWidth * 0.55, behavior: 'smooth' });
+    }
+
+    /* DRAG-TO-SCROLL (Gallery) */
+    (function() {
+        const w = document.getElementById('galleryWall');
+        let down=false, startX, scrollLeft;
+        w.addEventListener('mousedown', e => { down=true; _dragging=false; startX=e.pageX-w.offsetLeft; scrollLeft=w.scrollLeft; w.style.userSelect='none'; });
+        window.addEventListener('mouseup', () => { down=false; w.style.userSelect=''; setTimeout(()=>{ _dragging=false; },0); });
+        w.addEventListener('mousemove', e => { if(!down) return; const walk=(e.pageX-w.offsetLeft-startX)*1.3; if(Math.abs(walk)>5) _dragging=true; w.scrollLeft=scrollLeft-walk; });
+    })();
+
+    /* ═══ LIGHTBOX PAN & ZOOM LOGIC ═══ */
+    let isZoomed = false;
+    let panX = 0, panY = 0;
+    let dragStartX = 0, dragStartY = 0;
+    let initialMouseX = 0, initialMouseY = 0;
+    let isDraggingZoom = false;
+    let preventClick = false; 
+
+    const ZOOM_SCALE = window.innerWidth < 600 ? 2.5 : 2.0; 
+
+    function toggleZoom(e) {
+        e.stopPropagation();
+        
+        if (preventClick) return;
+
+        const lightbox = document.getElementById('lightbox');
+        const wrap = document.getElementById('lbWrap');
+        
+        isZoomed = !isZoomed;
+
+        if (isZoomed) {
+            lightbox.classList.add('zoomed-in');
+            panX = 0; panY = 0;
+            wrap.style.transition = 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)';
+            wrap.style.transform = `translate(0px, 0px) scale(${ZOOM_SCALE})`;
+        } else {
+            resetZoom();
+        }
+    }
+
+    function resetZoom() {
+        isZoomed = false;
+        panX = 0; panY = 0;
+        const lightbox = document.getElementById('lightbox');
+        const wrap = document.getElementById('lbWrap');
+        
+        lightbox.classList.remove('zoomed-in');
+        wrap.style.transition = 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)';
+        wrap.style.transform = ''; 
+    }
+
+    /* --- Mouse / Touch Dragging --- */
+    const lbWrap = document.getElementById('lbWrap');
+
+    function startPan(clientX, clientY) {
+        if (!isZoomed) return;
+        isDraggingZoom = true;
+        initialMouseX = clientX;
+        initialMouseY = clientY;
+        dragStartX = clientX - panX;
+        dragStartY = clientY - panY;
+        lbWrap.style.transition = 'none';
+    }
+
+    function movePan(clientX, clientY, e) {
+        if (!isDraggingZoom || !isZoomed) return;
+        if (e && e.cancelable) e.preventDefault(); 
+        
+        panX = clientX - dragStartX;
+        panY = clientY - dragStartY;
+
+        const limitX = window.innerWidth * 0.8; 
+        const limitY = window.innerHeight * 0.8;
+        panX = Math.max(-limitX, Math.min(limitX, panX));
+        panY = Math.max(-limitY, Math.min(limitY, panY));
+
+        lbWrap.style.transform = `translate(${panX}px, ${panY}px) scale(${ZOOM_SCALE})`;
+    }
+
+    function endPan(clientX, clientY) {
+        if (!isDraggingZoom) return;
+        isDraggingZoom = false;
+        
+        lbWrap.style.transition = 'transform 0.2s ease-out';
+        
+        const dist = Math.hypot(clientX - initialMouseX, clientY - initialMouseY);
+        if (dist > 5) {
+            preventClick = true;
+            setTimeout(() => preventClick = false, 50); 
+        }
+    }
+
+    lbWrap.addEventListener('mousedown', e => startPan(e.clientX, e.clientY));
+    window.addEventListener('mousemove', e => movePan(e.clientX, e.clientY, e));
+    window.addEventListener('mouseup', e => endPan(e.clientX, e.clientY));
+
+    lbWrap.addEventListener('touchstart', e => {
+        if(e.touches.length > 0) startPan(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive: false});
+    window.addEventListener('touchmove', e => {
+        if(e.touches.length > 0) movePan(e.touches[0].clientX, e.touches[0].clientY, e);
+    }, {passive: false});
+    window.addEventListener('touchend', e => {
+        if(e.changedTouches.length > 0) endPan(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    });
+
+    /* ═══ BASIC LIGHTBOX LOGIC ═══ */
+    function openLightbox(i) { 
+        currentIndex = i; 
+        updateLightbox(); 
+        document.getElementById('lightbox').classList.add('active'); 
+    }
+    
+    function closeLightbox() { 
+        resetZoom(); 
+        isDraggingZoom = false; // Safety catch
+        document.getElementById('lightbox').classList.remove('active'); 
+        document.getElementById('lbVideo').pause(); 
+    }
+
+    function updateLightbox() {
+        resetZoom(); 
+
+        const d = researchData[currentIndex], f = document.getElementById('lbFrame');
+        f.classList.remove('lb-fade'); void f.offsetWidth; f.classList.add('lb-fade');
+        document.getElementById('lbTitle').textContent = d.title;
+        document.getElementById('lbCounter').textContent = `${String(currentIndex+1).padStart(2,'0')} / ${String(researchData.length).padStart(2,'0')}`;
+        
+        const v = document.getElementById('lbVideo'), img = document.getElementById('lbImage');
+        if(d.type === 'video'){ 
+            v.classList.remove('hidden'); img.classList.add('hidden'); v.src = d.video; v.play(); 
+            img.style.pointerEvents = 'none'; 
+        } else { 
+            v.classList.add('hidden'); img.classList.remove('hidden'); v.pause(); img.src = d.image; img.alt = d.title; 
+            img.style.pointerEvents = 'auto';
+        }
+    }
+
+    function lbNavigate(dir) { currentIndex = (currentIndex + dir + researchData.length) % researchData.length; updateLightbox(); }
+
+    document.getElementById('lightbox').addEventListener('click', e => { 
+        if(e.target === document.getElementById('lightbox')) {
+            if(isZoomed) resetZoom();
+            else closeLightbox();
+        }
+    });
+
+    document.addEventListener('keydown', e => {
+        if(!document.getElementById('lightbox').classList.contains('active')) return;
+        
+        if(e.key === 'Escape') {
+            if(isZoomed) resetZoom();
+            else closeLightbox();
+        }
+        
+        if(!isZoomed) {
+            if(e.key === 'ArrowRight') lbNavigate(1);
+            if(e.key === 'ArrowLeft')  lbNavigate(-1);
+        }
+    });
+
+    /* Side Swipe Navigation for Lightbox */
+    let tsX=0, tsY=0;
+    document.addEventListener('touchstart', e => { tsX = e.changedTouches[0].screenX; tsY = e.changedTouches[0].screenY; }, {passive:true});
+    document.addEventListener('touchend', e => {
+        if(!document.getElementById('lightbox').classList.contains('active') || isZoomed) return; 
+        
+        const dx = e.changedTouches[0].screenX - tsX, dy = e.changedTouches[0].screenY - tsY;
+        if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) dx < 0 ? lbNavigate(1) : lbNavigate(-1);
+    }, {passive:true});
+
+    buildGallery();
+</script>
+</body>
+</html>

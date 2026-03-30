@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Experimental Research Exhibit - Virtual Museum</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-light-blue: #89bfe1;
+            --navy-dark:     #0b1f38;
+            --glass-white:   rgba(255, 255, 255, 0.65);
+            --accent-blue:   #2a75d3;
+            
+            /* The green/gold theme from your code */
+            --cream:      #f5f0e8;
+            --cream-warm: #ede5d0;
+            --ink:        #1a2410;
+            --gold:       #c9a84c;
+            --gold-light: #e8cb7a;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { width: 100%; height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: var(--navy-dark); }
+
+        /* ROOM */
+        .museum-room { width: 100%; height: 100vh; position: relative; overflow: hidden; animation: roomReveal 1.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+        @keyframes roomReveal { from { opacity:0; filter:blur(20px); } to { opacity:1; filter:blur(0); } }
+
+        .room-shell {
+            width: 100%; height: 100%; position: relative;
+            background-color: var(--bg-light-blue);
+            background-image: 
+                radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.5) 0%, transparent 60%),
+                radial-gradient(rgba(255, 255, 255, 0.4) 2px, transparent 2.5px);
+            background-size: 100% 100%, 35px 35px;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+        }
+
+        .ceiling-strip { position: absolute; top:0; left:0; right:0; height:10%; background: linear-gradient(180deg, #4a8ac4, #89bfe1); border-bottom: 3px solid var(--accent-blue); }
+        .ceiling-light { position:absolute; top:3%; left:50%; transform:translateX(-50%); width:120px; height:20px; background:rgba(255,255,255,0.9); border-radius:50%; box-shadow: 0 0 40px 20px rgba(255,255,255,0.4), 0 0 100px 50px rgba(255,255,255,0.2); }
+        .vignette { position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 50%, rgba(11, 31, 56, 0.3) 100%); pointer-events:none; z-index:2; }
+
+        .floor { position:absolute; bottom:0; left:0; right:0; height:14%; background:linear-gradient(180deg,#5b96c2,#4a8ac4 40%,#2a75d3); border-top:4px solid var(--accent-blue); box-shadow:inset 0 20px 40px rgba(11,31,56,0.2); }
+        .floor::before { content:''; position:absolute; top:0; left:0; right:0; height:28px; background:linear-gradient(180deg,#6ba1cc,#5b96c2); border-bottom:2px solid rgba(255,255,255,0.3); }
+        .floor::after  { content:''; position:absolute; inset:28px 0 0; background-image:repeating-linear-gradient(90deg,transparent,transparent 100px,rgba(11,31,56,0.05) 100px,rgba(11,31,56,0.05) 101px); }
+
+        /* HEADER */
+        .room-header { position:absolute; top:12%; left:50%; transform:translateX(-50%); text-align:center; z-index:10; white-space:nowrap; }
+        .room-label  { font-family:'Inter', sans-serif; font-weight:700; font-size:clamp(0.5rem,1.5vw,0.75rem); letter-spacing:8px; color:var(--accent-blue); text-transform:uppercase; opacity:0.9; }
+        .room-title  { font-family:'Playfair Display', serif; font-size:clamp(1.6rem,4vw,3rem); font-weight:700; color:var(--navy-dark); letter-spacing:4px; margin-top:4px; line-height:1; text-shadow:0 4px 15px rgba(255,255,255,0.8); text-transform:uppercase; }
+        
+        .title-ornament { display:flex; align-items:center; gap:12px; justify-content:center; margin-top:8px; }
+        .title-ornament span { display:block; height:1px; width:60px; background:linear-gradient(90deg,transparent,var(--accent-blue)); }
+        .title-ornament span:last-child { background:linear-gradient(90deg,var(--accent-blue),transparent); }
+        .title-ornament i { color:var(--accent-blue); font-style:normal; font-size:0.6rem; letter-spacing:4px; }
+
+        /* BACK BTN */
+        .back-btn { position:fixed; top:20px; left:20px; color:var(--navy-dark); text-decoration:none; font-size:0.7rem; letter-spacing:2px; border:2px solid rgba(11,31,56,0.2); padding:10px 18px; z-index:200; text-transform:uppercase; font-weight:700; background:rgba(255,255,255,0.5); border-radius:30px; backdrop-filter:blur(10px); transition:all 0.3s ease; cursor: pointer; }
+        .back-btn:hover { background:var(--navy-dark); color:white; border-color:var(--navy-dark); box-shadow:0 8px 20px rgba(11,31,56,0.3); }
+
+        /* GALLERY SIDE SCROLL */
+        .gallery-track {
+            position:absolute; top:22%; left:0; right:0; z-index:5;
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%);
+        }
+
+        .gallery-wall {
+            display: flex; 
+            align-items: flex-end;
+            justify-content: flex-start; /* Safe centering */
+            gap: clamp(20px, 3vw, 48px);
+            padding: 40px clamp(40px, 5vw, 80px) 0;
+            overflow-x: auto; 
+            overflow-y: visible;
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
+            scroll-behavior: smooth; 
+            cursor: default; /* Kept arrow cursor */
+            width: 100%;
+        }
+        
+        .gallery-wall::before,
+        .gallery-wall::after { content: ''; margin: auto; }
+
+        .gallery-wall:active { cursor: default; } /* No hand grab on wall */
+        .gallery-wall::-webkit-scrollbar { display:none; }
+
+        /* Scroll arrows */
+        .scroll-arrow { position:absolute; top:22%; transform:translateY(40%); z-index:10; background:var(--glass-white); border:2px solid rgba(11,31,56,0.1); color:var(--navy-dark); width:45px; height:45px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.4rem; cursor:pointer; backdrop-filter:blur(10px); transition:all 0.3s; opacity:0.8; -webkit-tap-highlight-color:transparent; }
+        .scroll-arrow:hover { background:var(--navy-dark); color:white; border-color:var(--navy-dark); opacity:1; transform:translateY(40%) scale(1.1); }
+        .scroll-arrow.left  { left:14px; }
+        .scroll-arrow.right { right:14px; }
+
+        /* Poster slot */
+        .poster-slot { display:flex; flex-direction:column; align-items:center; flex-shrink:0; cursor:default; transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+        .poster-slot:hover { transform:translateY(-14px) scale(1.02); }
+
+        .poster-wire { width:2px; height:clamp(20px,3vh,36px); background:linear-gradient(180deg,var(--navy-dark),transparent); position:relative; opacity: 0.5; }
+        .poster-wire::before { content:''; position:absolute; top:-4px; left:50%; transform:translateX(-50%); width:10px; height:10px; border-radius:50%; background:var(--navy-dark); }
+
+        .poster-frame { position:relative; width:clamp(120px,18vw,280px); aspect-ratio:91/122; background:#000; border:clamp(4px,0.5vw,8px) solid white; box-shadow:0 15px 35px rgba(11,31,56,0.2); border-radius:4px; overflow:hidden; transition:box-shadow 0.4s; }
+        .poster-slot:hover .poster-frame { box-shadow:0 25px 50px rgba(11,31,56,0.35); }
+
+        .poster-media { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.6s; filter:brightness(0.95); }
+        .poster-slot:hover .poster-media { transform:scale(1.04); filter:brightness(1); }
+
+        .poster-placard { background:var(--glass-white); border:1px solid rgba(255,255,255,0.8); border-top:3px solid var(--accent-blue); padding:clamp(8px,1vh,12px) clamp(10px,1.5vw,16px); text-align:center; width:clamp(120px,18vw,280px); box-shadow:0 8px 20px rgba(11,31,56,0.1); backdrop-filter:blur(10px); border-radius:4px; margin-top: 8px;}
+        .placard-num   { font-family:'Inter', sans-serif; font-size:clamp(0.5rem,0.7vw,0.6rem); letter-spacing:2px; color:var(--accent-blue); font-weight:700; text-transform:uppercase; margin-bottom:4px; }
+        .placard-title { font-family:'Playfair Display', serif; font-size:clamp(0.7rem,1vw,0.9rem); color:var(--navy-dark); font-weight:700; line-height:1.2; }
+
+        .click-hint { position:absolute; bottom:16%; left:50%; transform:translateX(-50%); color:rgba(11,31,56,0.6); font-weight:600; font-size:0.65rem; letter-spacing:3px; text-transform:uppercase; z-index:5; white-space:nowrap; animation:pulseHint 2.5s ease-in-out infinite; }
+        @keyframes pulseHint { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+        /* ══ FULLSCREEN LIGHTBOX ══ */
+        .lightbox-overlay { 
+            position:fixed; inset:0; background:rgba(11,31,56,0.95); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); 
+            z-index:500; display:flex; align-items:center; justify-content:center; 
+            /* Fix cursor stickiness by forcing visibility off when closed */
+            opacity:0; visibility: hidden; pointer-events:none; 
+            transition:opacity 0.45s, visibility 0.45s; 
+        }
+        .lightbox-overlay.active { opacity:1; visibility: visible; pointer-events:all; }
+
+        /* Main Container inside Lightbox */
+        .lb-frame-wrap { 
+            position:relative; height:calc(100vh - 90px); aspect-ratio:91/122; max-width:calc(100vw - 130px); transform:scale(0.88); 
+            /* Smooth cinematic transition */
+            transition:transform 0.5s cubic-bezier(0.22, 1, 0.36, 1); will-change: transform;
+        }
+        .lightbox-overlay.active .lb-frame-wrap { transform:scale(1); }
+
+        /* ══ ZOOM & PAN STATES ══ */
+        /* Cursors */
+        .lb-media { 
+            cursor: zoom-in; 
+            /* Stop native browser image dragging which ruins cursors */
+            -webkit-user-drag: none; 
+            user-select: none; 
+        }
+        .lightbox-overlay.zoomed-in .lb-media { cursor: grab; }
+        .lightbox-overlay.zoomed-in .lb-frame-wrap:active .lb-media { cursor: grabbing; }
+
+        /* Hide elements when zoomed in so they don't block the view */
+        .lightbox-overlay.zoomed-in .lb-caption,
+        .lightbox-overlay.zoomed-in .lb-nav {
+            opacity: 0; pointer-events: none;
+        }
+
+        .lb-frame { width:100%; height:100%; background:#000; border:clamp(6px,0.8vw,14px) solid white; box-shadow:0 30px 80px rgba(0,0,0,0.6); border-radius:6px; overflow:hidden; position:relative; }
+        .lb-media { width:100%; height:100%; object-fit:cover; display:block; }
+        .lb-media.hidden { display:none; }
+
+        /* Caption styled like the Experimental Info Card */
+        .lb-caption { 
+            position: absolute; top: 50%; left: 100%; transform: translateY(-50%); 
+            margin-left: 30px; padding: 40px; 
+            background: rgba(255,255,255,0.9); border: 1px solid white; border-top: 4px solid var(--accent-blue);
+            border-radius: 12px; box-shadow: 10px 20px 40px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 15px; 
+            z-index: 4; width: 360px;
+            transition: opacity 0.3s ease;
+        }
+        .lb-title   { font-family:'Playfair Display', serif; font-size:1.8rem; font-weight:700; color:var(--navy-dark); line-height:1.2; }
+        .lb-desc    { font-family:'Inter', sans-serif; font-size:0.95rem; color:#2c3e50; line-height:1.6; font-weight:400; }
+        .lb-counter { font-size:0.75rem; letter-spacing:3px; color:var(--accent-blue); font-weight:700; white-space:nowrap; border-top: 1px solid rgba(11,31,56,0.1); padding-top: 15px; width: 100%; }
+
+        /* Nav arrows */
+        .lb-nav { position:fixed; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:white; width:clamp(45px,5vw,60px); height:clamp(45px,5vw,60px); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:clamp(1.4rem,2vw,1.8rem); cursor:pointer; transition:all 0.3s; z-index:510; backdrop-filter:blur(8px); -webkit-tap-highlight-color:transparent; }
+        .lb-nav:hover { background:white; color:var(--navy-dark); transform:translateY(-50%) scale(1.1); }
+        .lb-nav-prev { left:clamp(15px,2vw,30px); }
+        .lb-nav-next { right:clamp(15px,2vw,30px); }
+
+        .lb-close { position:fixed; top:25px; right:25px; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:white; width:45px; height:45px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; cursor:pointer; transition:all 0.3s; z-index:510; -webkit-tap-highlight-color:transparent; }
+        .lb-close:hover { background:white; color:var(--navy-dark); transform:scale(1.1); }
+
+        .lb-fade { animation:lbFade 0.35s ease; }
+        @keyframes lbFade { from{opacity:0;transform:scale(0.97)} to{opacity:1;transform:scale(1)} }
+
+        @media (max-width: 1000px) {
+            .lb-caption {
+                top: auto; bottom: -110px; left: 50%; transform: translateX(-50%); margin-left: 0;
+                flex-direction: column; width: 90%; padding: 20px; gap: 8px; border-radius: 8px;
+            }
+            .lb-desc { font-size: 0.85rem; margin-bottom: 0; display: none; }
+            .lb-counter { padding-top: 8px; }
+            .lb-frame-wrap { height: calc(100vh - 220px); }
+        }
+
+        @media (max-width:600px) {
+            .lb-frame-wrap { height:calc(100vh - 240px); max-width:calc(100vw - 60px); }
+            .gallery-wall  { padding-left:55px; padding-right:55px; }
+            .room-title { font-size: 1.8rem; }
+            .scroll-arrow { width: 35px; height: 35px; font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<a href="lobby.html" class="back-btn">← Return to Hall</a>
+
+<div class="museum-room">
+    <div class="room-shell">
+        <div class="ceiling-strip"><div class="ceiling-light"></div></div>
+        <div class="vignette"></div>
+
+        <div class="room-header">
+            <div class="room-label">Gallery I · URS Morong Campus</div>
+            <h1 class="room-title">Experimental Research</h1>
+            <div class="title-ornament"><span></span><i>✦</i><span></span></div>
+        </div>
+
+        <button class="scroll-arrow left"  onclick="scrollGallery(-1)" aria-label="Scroll left">&#10094;</button>
+        <button class="scroll-arrow right" onclick="scrollGallery(1)"  aria-label="Scroll right">&#10095;</button>
+
+        <div class="gallery-track">
+            <div class="gallery-wall" id="galleryWall"></div>
+        </div>
+
+        <div class="click-hint">Drag or click any poster to view</div>
+        <div class="floor"></div>
+    </div>
+</div>
+
+<div class="lightbox-overlay" id="lightbox">
+    <button class="lb-nav lb-nav-prev" onclick="lbNavigate(-1)" aria-label="Previous">&#10094;</button>
+    <button class="lb-nav lb-nav-next" onclick="lbNavigate(1)"  aria-label="Next">&#10095;</button>
+    <button class="lb-close" onclick="closeLightbox()" aria-label="Close">&#10005;</button>
+
+    <div class="lb-frame-wrap" id="lbWrap">
+        <div class="lb-frame" id="lbFrame">
+            <video id="lbVideo" class="lb-media hidden" autoplay muted loop playsinline></video>
+            <img   id="lbImage" class="lb-media" src="" alt="" onclick="toggleZoom(event)" draggable="false">
+        </div>
+        
+        <div class="lb-caption">
+            <div class="lb-title" id="lbTitle">—</div>
+            <div class="lb-desc"  id="lbDesc">—</div>
+            <div class="lb-counter" id="lbCounter">TRIAL 01 / 03</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const researchData = [
+        { 
+            title: "Utilizing Web-Based Instructional Materials in Improving the Performance of Grade 9 Learners in Physics", 
+            image: "exp/Utilizing Web-Based Instructional Materials in Improving the Performance of Grade 9 Learners in Physics_Anain, Ceremonia, Gondra, Sison.pdf.png", type: "image", desc: "" 
+        },
+        { 
+            title: "EFFECT OF Tabebuia rosea (BERTOL.) DC. (PINK TRUMPET TREE) LEAF EXTRACT ON THE ESTROUS CYCLE AND REPRODUCTION RATE OF FEMALE Mus musculus L. (ALBINO MICE)", 
+            image: "exp/Estrous Cycle_Beringuela et. al.pdf.png", type: "image", desc: ""  
+        },
+        { 
+            title: "AIGROWCEPA: ARTIFICIAL INTELLIGENCE (AI)-INTEGRATED HYDROPONIC SYSTEM WITH DISEASE DETECTION FOR SUSTAINABLE PRODUCTION OF ONION (ALLIUM CEPA L.) ", 
+            image: "exp/AIGROWCEPA.ECE.EPOSTER_REALIN ET AL.pdf.png", type: "image", desc: ""  
+        },
+        { 
+            title: "HATCHGUARD-ML: A Self-Regulated artificial Hatchery with Automated Feeding and Mortality Prediction for Giant Freshwater Prawn", 
+            image: "exp/HATCHGUARD-ML_E-POSTER.pdf.png", type: "image", desc: ""  
+        }
+    ];
+
+    let currentIndex = 0;
+    let _dragging    = false;
+
+    /* BUILD */
+    function buildGallery() {
+        const wall = document.getElementById('galleryWall');
+        wall.innerHTML = '';
+        researchData.forEach((item, i) => {
+            const slot = document.createElement('div');
+            slot.className = 'poster-slot';
+            const mediaTag = item.type === 'video'
+                ? `<video class="poster-media" src="${item.video}" autoplay muted loop playsinline></video>`
+                : `<img class="poster-media" src="${item.image}" alt="${item.title}" loading="lazy" draggable="false">`;
+            slot.innerHTML = `
+                <div class="poster-wire"></div>
+                <div class="poster-frame">${mediaTag}</div>
+                <div class="poster-placard">
+                    <div class="placard-num">Trial 0${i+1}</div>
+                    <div class="placard-title">${item.title}</div>
+                </div>`;
+            slot.addEventListener('click', () => { if (!_dragging) openLightbox(i); });
+            wall.appendChild(slot);
+        });
+    }
+
+    /* SCROLL */
+    function scrollGallery(dir) {
+        const w = document.getElementById('galleryWall');
+        w.scrollBy({ left: dir * w.offsetWidth * 0.55, behavior: 'smooth' });
+    }
+
+    /* DRAG-TO-SCROLL (Gallery) */
+    (function() {
+        const w = document.getElementById('galleryWall');
+        let down=false, startX, scrollLeft;
+        w.addEventListener('mousedown', e => { down=true; _dragging=false; startX=e.pageX-w.offsetLeft; scrollLeft=w.scrollLeft; w.style.userSelect='none'; });
+        window.addEventListener('mouseup', () => { down=false; w.style.userSelect=''; setTimeout(()=>{ _dragging=false; },0); });
+        w.addEventListener('mousemove', e => { if(!down) return; const walk=(e.pageX-w.offsetLeft-startX)*1.3; if(Math.abs(walk)>5) _dragging=true; w.scrollLeft=scrollLeft-walk; });
+    })();
+
+    /* ═══ LIGHTBOX PAN & ZOOM LOGIC ═══ */
+    let isZoomed = false;
+    let panX = 0, panY = 0;
+    let dragStartX = 0, dragStartY = 0;
+    let initialMouseX = 0, initialMouseY = 0;
+    let isDraggingZoom = false;
+    let preventClick = false; 
+
+    const ZOOM_SCALE = window.innerWidth < 600 ? 2.5 : 2.0; 
+
+    function toggleZoom(e) {
+        e.stopPropagation();
+        
+        if (preventClick) return;
+
+        const lightbox = document.getElementById('lightbox');
+        const wrap = document.getElementById('lbWrap');
+        
+        isZoomed = !isZoomed;
+
+        if (isZoomed) {
+            lightbox.classList.add('zoomed-in');
+            panX = 0; panY = 0;
+            wrap.style.transition = 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)';
+            wrap.style.transform = `translate(0px, 0px) scale(${ZOOM_SCALE})`;
+        } else {
+            resetZoom();
+        }
+    }
+
+    function resetZoom() {
+        isZoomed = false;
+        panX = 0; panY = 0;
+        const lightbox = document.getElementById('lightbox');
+        const wrap = document.getElementById('lbWrap');
+        
+        lightbox.classList.remove('zoomed-in');
+        wrap.style.transition = 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)';
+        wrap.style.transform = ''; 
+    }
+
+    /* --- Mouse / Touch Dragging --- */
+    const lbWrap = document.getElementById('lbWrap');
+
+    function startPan(clientX, clientY) {
+        if (!isZoomed) return;
+        isDraggingZoom = true;
+        initialMouseX = clientX;
+        initialMouseY = clientY;
+        dragStartX = clientX - panX;
+        dragStartY = clientY - panY;
+        lbWrap.style.transition = 'none';
+    }
+
+    function movePan(clientX, clientY, e) {
+        if (!isDraggingZoom || !isZoomed) return;
+        if (e && e.cancelable) e.preventDefault(); 
+        
+        panX = clientX - dragStartX;
+        panY = clientY - dragStartY;
+
+        const limitX = window.innerWidth * 0.8; 
+        const limitY = window.innerHeight * 0.8;
+        panX = Math.max(-limitX, Math.min(limitX, panX));
+        panY = Math.max(-limitY, Math.min(limitY, panY));
+
+        lbWrap.style.transform = `translate(${panX}px, ${panY}px) scale(${ZOOM_SCALE})`;
+    }
+
+    function endPan(clientX, clientY) {
+        if (!isDraggingZoom) return;
+        isDraggingZoom = false;
+        
+        lbWrap.style.transition = 'transform 0.2s ease-out';
+        
+        const dist = Math.hypot(clientX - initialMouseX, clientY - initialMouseY);
+        if (dist > 5) {
+            preventClick = true;
+            setTimeout(() => preventClick = false, 50); 
+        }
+    }
+
+    lbWrap.addEventListener('mousedown', e => startPan(e.clientX, e.clientY));
+    window.addEventListener('mousemove', e => movePan(e.clientX, e.clientY, e));
+    window.addEventListener('mouseup', e => endPan(e.clientX, e.clientY));
+
+    lbWrap.addEventListener('touchstart', e => {
+        if(e.touches.length > 0) startPan(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive: false});
+    window.addEventListener('touchmove', e => {
+        if(e.touches.length > 0) movePan(e.touches[0].clientX, e.touches[0].clientY, e);
+    }, {passive: false});
+    window.addEventListener('touchend', e => {
+        if(e.changedTouches.length > 0) endPan(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    });
+
+    /* ═══ BASIC LIGHTBOX LOGIC ═══ */
+    function openLightbox(i) { 
+        currentIndex = i; 
+        updateLightbox(); 
+        document.getElementById('lightbox').classList.add('active'); 
+    }
+    
+    function closeLightbox() { 
+        resetZoom(); 
+        isDraggingZoom = false; // Safety catch
+        document.getElementById('lightbox').classList.remove('active'); 
+        document.getElementById('lbVideo').pause(); 
+    }
+
+    function updateLightbox() {
+        resetZoom(); 
+
+        const d = researchData[currentIndex], f = document.getElementById('lbFrame');
+        f.classList.remove('lb-fade'); void f.offsetWidth; f.classList.add('lb-fade');
+        
+        document.getElementById('lbTitle').textContent = d.title;
+        
+        const descEl = document.getElementById('lbDesc');
+        if (d.desc) {
+            descEl.textContent = d.desc;
+            descEl.style.display = 'block';
+        } else {
+            descEl.style.display = 'none';
+        }
+
+        document.getElementById('lbCounter').textContent = `TRIAL 0${currentIndex+1} / 0${researchData.length}`;
+        
+        const v = document.getElementById('lbVideo'), img = document.getElementById('lbImage');
+        if(d.type === 'video'){ 
+            v.classList.remove('hidden'); img.classList.add('hidden'); v.src = d.video; v.play(); 
+            img.style.pointerEvents = 'none'; 
+        } else { 
+            v.classList.add('hidden'); img.classList.remove('hidden'); v.pause(); img.src = d.image; img.alt = d.title; 
+            img.style.pointerEvents = 'auto';
+        }
+    }
+
+    function lbNavigate(dir) { currentIndex = (currentIndex + dir + researchData.length) % researchData.length; updateLightbox(); }
+
+    document.getElementById('lightbox').addEventListener('click', e => { 
+        if(e.target === document.getElementById('lightbox')) {
+            if(isZoomed) resetZoom();
+            else closeLightbox();
+        }
+    });
+
+    document.addEventListener('keydown', e => {
+        if(!document.getElementById('lightbox').classList.contains('active')) return;
+        
+        if(e.key === 'Escape') {
+            if(isZoomed) resetZoom();
+            else closeLightbox();
+        }
+        
+        if(!isZoomed) {
+            if(e.key === 'ArrowRight') lbNavigate(1);
+            if(e.key === 'ArrowLeft')  lbNavigate(-1);
+        }
+    });
+
+    /* Side Swipe Navigation for Lightbox */
+    let tsX=0, tsY=0;
+    document.addEventListener('touchstart', e => { tsX = e.changedTouches[0].screenX; tsY = e.changedTouches[0].screenY; }, {passive:true});
+    document.addEventListener('touchend', e => {
+        if(!document.getElementById('lightbox').classList.contains('active') || isZoomed) return; 
+        
+        const dx = e.changedTouches[0].screenX - tsX, dy = e.changedTouches[0].screenY - tsY;
+        if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) dx < 0 ? lbNavigate(1) : lbNavigate(-1);
+    }, {passive:true});
+
+    buildGallery();
+</script>
+</body>
+</html>
